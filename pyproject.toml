@@ -1,0 +1,11 @@
+[project]
+name = "corefocus"
+version = "0.1.0"
+description = "Open loop tracker CLI"
+requires-python = ">=3.11"
+
+[project.optional-dependencies]
+test = ["pytest"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

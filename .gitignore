@@ -1,0 +1,9 @@
+loops/
+archive/
+loops.json
+archive.json
+__pycache__/
+*.pyc
+.pytest_cache/
+venv/
+*.egg-info/
