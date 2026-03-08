@@ -79,6 +79,7 @@
   .reader-back:hover { background: var(--hover); color: var(--text-secondary); }
   .reader-back.visible { display: flex; }
   .reader-title { font-size: 11px; font-weight: 600; color: var(--text-secondary); letter-spacing: 0.5px; text-transform: uppercase; flex: 1; }
+  .reader-header-actions { display: flex; gap: 6px; flex-shrink: 0; }
   .reader-body {
     flex: 1; padding: 20px; overflow-y: auto;
     font-family: 'Inter', system-ui, sans-serif;
@@ -328,6 +329,7 @@
     <div class="reader-header">
       <button class="reader-back" id="reader-back" onclick="goBack()" title="Back">&larr;</button>
       <span class="reader-title" id="reader-title">Overview</span>
+      <div class="reader-header-actions" id="reader-header-actions"></div>
     </div>
     <div class="reader-body" id="reader-body">
       <div class="reader-welcome">
@@ -370,7 +372,7 @@ async function loadDocs(loops) {
       const files = [...new DOMParser().parseFromString(html, 'text/html').querySelectorAll('a')]
         .map(a => a.getAttribute('href'))
         .filter(h => h && !h.startsWith('.') && (h.endsWith('.md') || h.endsWith('.png') || h.endsWith('.svg') || h.endsWith('.excalidraw'))
-          && h !== 'description.md' && h !== 'notes.md');
+          && h !== 'notes.md');
       if (files.length) docs[loop.id] = files;
     } catch {}
   }
@@ -483,22 +485,12 @@ async function selectCard(loopId, fromBack) {
   const docs = cachedDocs[loopId] || [];
 
   document.getElementById('reader-title').textContent = loop.title;
-  const [noteEntries, descText] = await Promise.all([fetchNotes(loopId), fetchDescription(loopId)]);
+  document.getElementById('reader-header-actions').innerHTML = `<button class="loop-close-btn" onclick="closeLoop('${loop.id}',false)">close</button><button class="loop-close-btn" onclick="closeLoop('${loop.id}',true)">close + verify</button>`;
+  const noteEntries = await fetchNotes(loopId);
 
   let html = `<div class="loop-info">
-    <div class="loop-info-id"><span onclick="copyId('${loop.id}')">${loop.id}</span><button class="loop-close-btn" onclick="event.stopPropagation();closeLoop('${loop.id}',false)">close</button><button class="loop-close-btn" onclick="event.stopPropagation();closeLoop('${loop.id}',true)">close + verify</button></div>
+    <div class="loop-info-id"><span onclick="copyId('${loop.id}')">${loop.id}</span></div>
     <div class="loop-info-meta">Opened ${timeAgo(loop.opened_at)} &middot; Last progress ${timeAgo(loop.last_progress)}</div>`;
-
-  // Description (rendered as markdown)
-  // Strip leading H1 if it matches the loop title (avoid duplicate)
-  let descBody = descText.trim().replace(/^# .+\n+/, '').trim();
-  if (descBody) {
-    html += '<div style="margin:12px 0;padding:12px;background:rgba(0,255,65,0.02);border:1px solid var(--border);border-radius:4px">';
-    html += renderMarkdown(descBody);
-    html += '</div>';
-  }
-
-  html += renderTodos(loop.todos);
 
   if (docs.length) {
     html += '<div class="loop-info-docs"><div class="loop-info-docs-title">Docs</div>';
@@ -508,6 +500,8 @@ async function selectCard(loopId, fromBack) {
     });
     html += '</div>';
   }
+
+  html += renderTodos(loop.todos);
 
   // Note input
   html += `<div class="note-input-section">
@@ -580,6 +574,7 @@ async function closeLoop(loopId, withVerify) {
       activeCard = null;
       currentLoopId = null;
       document.getElementById('reader-title').textContent = 'Overview';
+      document.getElementById('reader-header-actions').innerHTML = '';
       document.getElementById('reader-body').innerHTML = '<div class="reader-welcome"><div class="reader-welcome-icon">&#9711;</div><div class="reader-welcome-text">Loop closed</div></div>';
       render();
     }
