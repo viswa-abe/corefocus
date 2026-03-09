@@ -139,42 +139,92 @@ clauded                            # shows open loops, reminds you to pick one
 
 With no arguments, it lists your open loops and refuses to start — so you never accidentally work outside a loop.
 
-### 2. Claude Code hooks: inject loop context on session start
+### 2. Claude Code hooks
 
-In your project's `.claude/settings.json` (or global `~/.claude/settings.json`), add a hook that reads `CF_LOOP` and prints the loop's context into the conversation:
+CoreFocus uses four Claude Code hooks to create a continuous feedback loop between you, the agent, and your loops. Add these to `~/.claude/settings.json`:
 
 ```json
 {
   "hooks": {
     "SessionStart": [
       {
-        "type": "command",
-        "command": "python3 ~/.corefocus/hooks/session_start.py"
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 ~/.corefocus/hooks/loop_context.py",
+            "timeout": 3000
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 ~/.corefocus/hooks/loop_note.py",
+            "timeout": 3000
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 ~/.corefocus/hooks/loop_note.py",
+            "timeout": 3000
+          }
+        ]
+      }
+    ],
+    "SubagentStop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 ~/.corefocus/hooks/loop_note.py",
+            "timeout": 3000
+          }
+        ]
       }
     ]
   }
 }
 ```
 
-Write a small script that reads `CF_LOOP`, calls `cf show`, and prints the result so Claude sees it as system context. Example:
+**What each hook does:**
 
-```python
-#!/usr/bin/env python3
-import os, subprocess, sys
+| Hook | Script | Purpose |
+|------|--------|---------|
+| `SessionStart` | `loop_context.py` | Injects the loop's title, description, todos, and recent notes into Claude's context via `additionalContext`. Also detects unnamed sessions and tells Claude to define the problem first. |
+| `UserPromptSubmit` | `loop_note.py` | Logs your prompts to the loop's notes, tagged `[viswa]`. Long prompts (>300 chars) are saved to `agents/` as separate files with a link in the note. |
+| `Stop` | `loop_note.py` | Logs Claude's final response to the loop's notes, tagged `[claude]`. Same long-message handling. |
+| `SubagentStop` | `loop_note.py` | Logs subagent results, tagged `[agent:type]`. Full output saved to `agents/<type>-<id>.md`, short summary in notes. |
 
-loop_id = os.environ.get("CF_LOOP")
-if not loop_id:
-    sys.exit(0)
+The result: every loop has a complete, timestamped transcript of what happened — your questions, Claude's answers, and subagent results — all in `loops/<id>/notes.md` with overflow in `loops/<id>/agents/`.
 
-result = subprocess.run(
-    ["python3", os.path.expanduser("~/.corefocus/cf"), "show", loop_id],
-    capture_output=True, text=True
-)
-if result.stdout.strip():
-    print(f"THIS SESSION IS TIED TO LOOP: {loop_id}")
-    print(f"CF_LOOP={loop_id}")
-    print(result.stdout)
-```
+#### `hooks/loop_context.py` — SessionStart
+
+Reads `CF_LOOP` env var, loads the loop from `loops.json`, and returns `additionalContext` with:
+- The loop title and ID (unmissable banner)
+- Description from `description.md` (if written)
+- Todo checklist with done/undone state
+- Last 5 notes for continuity across sessions
+- Instructions telling Claude to log progress and never ask which loop
+
+For unnamed sessions (`clauded new`), it tells Claude to understand the problem first, then rename the loop and write a description.
+
+#### `hooks/loop_note.py` — UserPromptSubmit, Stop, SubagentStop
+
+A single script that handles multiple hook events. It reads `hook_event_name` from stdin to determine what to log:
+
+- **UserPromptSubmit**: logs the user's prompt, tagged `[viswa]`
+- **Stop**: logs Claude's response, tagged `[claude]` (skips if inside a subagent — SubagentStop handles that)
+- **SubagentStop**: saves full agent output to `agents/<type>-<id>.md`, logs a one-line summary with a link
+
+All notes update `last_progress` on the loop, keeping it alive and preventing expiry.
 
 ### 3. CLAUDE.md instructions: teach the agent to use `cf`
 
@@ -202,10 +252,15 @@ Track open problems in `~/.corefocus/`.
 
 1. You pick a loop from `cf` or the web UI at `localhost:3333`
 2. You launch Claude with `clauded <loop-id>`
-3. The SessionStart hook injects the loop's title, todos, and recent notes
-4. Claude works on the problem, logging progress with `cf note` and checking off todos with `cf todo done`
-5. When done, Claude closes the loop with `cf close`, which auto-creates a verification loop
-6. Stale loops expire on their own — no cleanup needed
+3. **SessionStart** hook injects the loop's title, todos, and recent notes into context
+4. **UserPromptSubmit** hook logs every prompt you send to the loop's notes
+5. Claude works on the problem, logging progress with `cf note` and checking off todos
+6. **Stop** hook logs Claude's responses back to the loop's notes
+7. **SubagentStop** hook captures subagent results into `agents/` files
+8. When done, Claude closes the loop with `cf close`, which auto-creates a verification loop
+9. Stale loops expire on their own — no cleanup needed
+
+The loop's `notes.md` becomes a complete session transcript — searchable, reviewable, and persistent across context window resets.
 
 ## Tests
 
