@@ -83,19 +83,61 @@ No database. No config file. Just JSON and markdown.
 
 CoreFocus becomes powerful when your AI agent uses it to track its own work. Here's how to set that up with Claude Code.
 
-### 1. Shell hook: inject the active loop
+### 1. Shell function: `clauded`
 
-Create a shell function that sets `CF_LOOP` before launching Claude:
+Add this to your `.zshrc` or `.bashrc`. It enforces the habit of always working inside a loop:
 
 ```bash
-# In your .zshrc or .bashrc
+# clauded <loop-id>           — start claude session tied to a loop
+# clauded new                 — create a new unnamed loop, start session
+# clauded new "problem title" — create a named loop, start session
+# clauded (no args)           — fail (forces the habit)
 clauded() {
-  # Pick the loop you want to work on (from `cf` output or the web UI)
-  export CF_LOOP="$1"
-  shift
-  claude "$@"
+  if [[ -z "$1" ]]; then
+    echo "Usage: clauded <loop-id>  or  clauded new [\"title\"]"
+    echo ""
+    python3 ~/.corefocus/cf
+    echo ""
+    echo "Pick a loop or create one with: clauded new"
+    return 1
+  fi
+
+  local loop_id="$1"
+
+  if [[ "$1" == "new" ]]; then
+    local title="${*:2}"
+    if [[ -z "$title" ]]; then
+      title="session $(date +"%m%d-%H%M")"
+    fi
+    loop_id=$(python3 ~/.corefocus/cf new "$title" -q)
+    echo "Created loop: $loop_id"
+  else
+    # Verify loop exists
+    if ! python3 -c "
+import json; loops = json.loads(open('$HOME/.corefocus/loops.json').read())
+if not any(l['id'] == '$loop_id' for l in loops): exit(1)
+" 2>/dev/null; then
+      echo "Loop '$loop_id' not found. Open loops:"
+      echo ""
+      python3 ~/.corefocus/cf
+      return 1
+    fi
+  fi
+
+  CF_LOOP="$loop_id" claude
 }
 ```
+
+Usage:
+
+```bash
+clauded api-returns-stale-data     # attach to existing loop
+clauded new "uploads failing"      # create loop + start session
+clauded new                        # auto-named loop (session 0309-1420)
+clauded                            # shows open loops, reminds you to pick one
+```
+
+With no arguments, it lists your open loops and refuses to start — so you never accidentally work outside a loop.
 
 ### 2. Claude Code hooks: inject loop context on session start
 
