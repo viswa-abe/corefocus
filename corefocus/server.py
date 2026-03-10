@@ -2,9 +2,13 @@
 
 import http.server
 import json
+import time
+from pathlib import Path
 
 from corefocus.store import LoopStore
 from corefocus.utils import format_timestamp, now_iso
+
+STATUS_DIR = Path.home() / ".claude" / "status"
 
 
 def create_handler(store: LoopStore):
@@ -13,6 +17,12 @@ def create_handler(store: LoopStore):
     class Handler(http.server.SimpleHTTPRequestHandler):
         def __init__(self, *args, **kwargs):
             super().__init__(*args, directory=str(store.base), **kwargs)
+
+        def do_GET(self):
+            if self.path.startswith('/api/status'):
+                self._handle_status()
+            else:
+                super().do_GET()
 
         def do_POST(self):
             if self.path == '/api/note':
@@ -35,6 +45,24 @@ def create_handler(store: LoopStore):
                 self._respond(200, {"ok": True, "ts": ts})
             except KeyError:
                 self._respond(404, {"error": "loop not found"})
+
+        def _handle_status(self):
+            """Return all active Claude session statuses."""
+            sessions = []
+            now = time.time()
+            if STATUS_DIR.exists():
+                for f in STATUS_DIR.glob("*.json"):
+                    try:
+                        data = json.loads(f.read_text())
+                        age = now - data.get("ts", 0)
+                        if age > 1800:  # skip stale >30min
+                            continue
+                        data["age_seconds"] = int(age)
+                        sessions.append(data)
+                    except Exception:
+                        pass
+            sessions.sort(key=lambda s: s.get("ts", 0), reverse=True)
+            self._respond(200, sessions)
 
         def _handle_close(self):
             body = self._read_json()

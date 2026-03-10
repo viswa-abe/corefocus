@@ -52,6 +52,10 @@
   .header-meta { display: flex; align-items: center; gap: 10px; margin-left: auto; }
   .pill { font-size: 10px; font-weight: 600; padding: 3px 9px; border-radius: 20px; font-family: inherit; }
   .pill-count { background: rgba(0,255,65,0.06); border: 1px solid rgba(0,255,65,0.15); }
+  .pill-working { background: rgba(0,255,65,0.1); border: 1px solid rgba(0,255,65,0.25); display: inline-flex; align-items: center; gap: 4px; }
+  .pill-working .pw-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--accent); animation: pulse-green 1.5s ease-in-out infinite; }
+  body.light .pill-working { background: rgba(22,163,74,0.08); border-color: rgba(22,163,74,0.2); }
+  body.light .pill-working .pw-dot { background: #16a34a; }
   .theme-toggle { background: none; border: 1px solid var(--border); border-radius: 6px; width: 28px; height: 28px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 13px; color: var(--text-muted); transition: all 0.15s; }
   .theme-toggle:hover { background: var(--hover); color: var(--text-secondary); }
 
@@ -146,6 +150,38 @@
   .todo-check { width: 12px; height: 12px; border-radius: 3px; border: 1px solid var(--text-muted); flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 8px; }
   .todo-item.done .todo-check { background: var(--accent); border-color: var(--accent); color: var(--bg); }
 
+  /* Session status */
+  .session-status { margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--border-light); }
+  .session-status-title { font-size: 10px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 8px; display: flex; align-items: center; gap: 6px; }
+  .session-status-title .live-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--accent); animation: pulse-green 2s ease-in-out infinite; }
+  @keyframes pulse-green { 0%, 100% { opacity: 0.4; } 50% { opacity: 1; } }
+  .session-item { display: flex; align-items: center; gap: 8px; padding: 6px 8px; border-radius: 4px; font-size: 11px; margin-bottom: 4px; background: rgba(0,255,65,0.02); border: 1px solid rgba(0,255,65,0.06); transition: all 0.3s; }
+  .session-item.working { border-color: rgba(0,255,65,0.15); background: rgba(0,255,65,0.04); }
+  .session-item.idle { opacity: 0.5; }
+  .session-item.error { border-color: rgba(255,68,68,0.15); background: rgba(255,68,68,0.04); }
+  .session-icon { width: 18px; height: 18px; border-radius: 4px; display: flex; align-items: center; justify-content: center; font-size: 10px; flex-shrink: 0; }
+  .session-icon.working { background: rgba(0,255,65,0.1); }
+  .session-icon.idle { background: rgba(255,255,255,0.05); }
+  .session-icon.error { background: rgba(255,68,68,0.1); }
+  .session-detail { flex: 1; min-width: 0; }
+  .session-detail-text { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text-secondary); }
+  .session-detail-meta { font-size: 9px; color: var(--text-muted); margin-top: 1px; }
+  .session-age { font-size: 9px; color: var(--text-muted); flex-shrink: 0; }
+
+  /* Header session indicator */
+  .header-sessions { display: flex; align-items: center; gap: 4px; margin-right: 4px; }
+  .header-session-dot { width: 7px; height: 7px; border-radius: 50%; transition: all 0.3s; }
+  .header-session-dot.working { background: var(--accent); box-shadow: 0 0 6px rgba(0,255,65,0.4); animation: pulse-green 1.5s ease-in-out infinite; }
+  .header-session-dot.idle { background: var(--text-muted); opacity: 0.4; }
+  .header-session-dot.error { background: #ff4444; box-shadow: 0 0 6px rgba(255,68,68,0.4); }
+
+  body.light .session-item { background: rgba(22,163,74,0.02); border-color: rgba(22,163,74,0.06); }
+  body.light .session-item.working { border-color: rgba(22,163,74,0.15); background: rgba(22,163,74,0.04); }
+  body.light .session-item.error { border-color: rgba(220,38,38,0.15); background: rgba(220,38,38,0.04); }
+  body.light .session-icon.working { background: rgba(22,163,74,0.1); }
+  body.light .session-status-title .live-dot { background: #16a34a; }
+  body.light .header-session-dot.working { background: #16a34a; box-shadow: 0 0 6px rgba(22,163,74,0.4); }
+
   /* Agent link in notes */
   .agent-link { color: var(--accent); cursor: pointer; text-decoration: underline; text-decoration-style: dotted; }
   .agent-link:hover { text-decoration-style: solid; }
@@ -190,12 +226,25 @@
   /* Cards */
   .card {
     background: var(--card-bg); border-radius: 4px; border: 1px solid var(--card-border);
-    padding: 10px 12px; transition: all 0.2s ease; cursor: pointer;
+    padding: 10px 12px; transition: all 0.2s ease; cursor: pointer; position: relative;
   }
   .card:hover { background: rgba(0,255,65,0.04); border-color: rgba(0,255,65,0.15); box-shadow: var(--glow); }
   .card.active { border-color: var(--accent); background: rgba(0,255,65,0.06); }
   .card.stale { opacity: 0.35; }
   .card.stale .card-age { color: var(--amber); opacity: 0.7; }
+  .card-sessions { display: flex; align-items: center; gap: 4px; margin-top: 6px; }
+  .card-session-badge { display: inline-flex; align-items: center; gap: 3px; font-size: 9px; padding: 2px 6px; border-radius: 3px; background: rgba(0,255,65,0.06); border: 1px solid rgba(0,255,65,0.1); color: var(--text-secondary); max-width: 100%; overflow: hidden; }
+  .card-session-badge.working { background: rgba(0,255,65,0.08); border-color: rgba(0,255,65,0.18); }
+  .card-session-badge.idle { opacity: 0.5; }
+  .card-session-badge.error { background: rgba(255,68,68,0.06); border-color: rgba(255,68,68,0.15); color: #ff6b6b; }
+  .card-session-badge .badge-dot { width: 5px; height: 5px; border-radius: 50%; flex-shrink: 0; }
+  .card-session-badge.working .badge-dot { background: var(--accent); animation: pulse-green 1.5s ease-in-out infinite; }
+  .card-session-badge.idle .badge-dot { background: var(--text-muted); }
+  .card-session-badge.error .badge-dot { background: #ff4444; }
+  .card-session-badge .badge-text { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  body.light .card-session-badge { background: rgba(22,163,74,0.04); border-color: rgba(22,163,74,0.1); }
+  body.light .card-session-badge.working { background: rgba(22,163,74,0.06); border-color: rgba(22,163,74,0.15); }
+  body.light .card-session-badge.working .badge-dot { background: #16a34a; }
   /* Blocker section — pinned at bottom like verify */
   .blocker-section { border-top: 1px solid rgba(255,68,68,0.12); flex-shrink: 0; }
   .blocker-header { padding: 8px 20px; display: flex; align-items: center; gap: 8px; }
@@ -296,6 +345,8 @@
   </div>
   <h1>Open Loops</h1>
   <div class="header-meta">
+    <div class="header-sessions" id="header-sessions" title="Active Claude sessions"></div>
+    <span class="pill pill-count" id="working-count" style="display:none"></span>
     <span class="pill pill-count" id="loop-count"></span>
     <button class="theme-toggle" onclick="toggleTheme()" id="theme-btn" title="Toggle theme"></button>
   </div>
@@ -461,16 +512,23 @@ function renderCard(root) {
   const age = timeAgo(root.last_progress);
   const isActive = activeCard === root.id;
 
-  const notePreview = cachedNotePreviews[root.id] || '';
-  const previewHtml = notePreview ? `<div style="font-size:10px;color:var(--text-muted);margin-top:4px;line-height:1.3;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(notePreview)}</div>` : '';
+  const previewHtml = '';
 
   const todos = root.todos || [];
   const done = todos.filter(t => t.done).length;
   const todoHtml = todos.length ? `<div style="font-size:9px;color:var(--text-muted);margin-top:4px">${done}/${todos.length} done</div>` : '';
 
+  // Session badges for this loop
+  const workingSessions = cachedSessions.filter(s => s.loop === root.id && s.state === 'working' && s.age_seconds < 300);
+  let sessionHtml = '';
+  if (workingSessions.length) {
+    const label = workingSessions.length === 1 ? 'Working' : `${workingSessions.length} sessions`;
+    sessionHtml = `<div class="card-sessions"><span class="card-session-badge working"><span class="badge-dot"></span><span class="badge-text">${label}</span></span></div>`;
+  }
+
   return `<div class="card${stale ? ' stale' : ''}${isActive ? ' active' : ''}" onclick="selectCard('${root.id}')">
     <div class="card-top"><span class="card-title">${esc(root.title)}</span><span class="card-age">${age}</span></div>
-    ${previewHtml}${todoHtml}
+    ${previewHtml}${todoHtml}${sessionHtml}
   </div>`;
 }
 
@@ -502,6 +560,9 @@ async function selectCard(loopId, fromBack) {
   }
 
   html += renderTodos(loop.todos);
+
+  // Session status placeholder (filled by fetchSessions)
+  html += '<div id="loop-sessions"></div>';
 
   // Note input
   html += `<div class="note-input-section">
@@ -732,7 +793,13 @@ async function render() {
   // Separate by kind
   const blockerLoops = allLoops.filter(r => r.kind === 'blocker');
   const verifyLoops = allLoops.filter(r => r.kind === 'verification');
-  cachedRoots = regularLoops.sort((a, b) => new Date(b.last_progress) - new Date(a.last_progress));
+  const activeLoopIds = new Set(cachedSessions.filter(s => s.state === 'working' && s.age_seconds < 300).map(s => s.loop));
+  cachedRoots = regularLoops.sort((a, b) => {
+    const aActive = activeLoopIds.has(a.id) ? 1 : 0;
+    const bActive = activeLoopIds.has(b.id) ? 1 : 0;
+    if (bActive !== aActive) return bActive - aActive;
+    return new Date(b.last_progress) - new Date(a.last_progress);
+  });
 
   if (!cachedRoots.length) {
     grid.style.display = 'none'; empty.style.display = 'flex';
@@ -803,10 +870,77 @@ function updateThemeBtn() {
   document.getElementById('theme-btn').textContent = document.body.classList.contains('light') ? '\u263E' : '\u2600';
 }
 
+// === Session status ===
+let cachedSessions = [];
+
+async function fetchSessions() {
+  try {
+    cachedSessions = await (await fetch('/api/status?' + Date.now())).json();
+  } catch { cachedSessions = []; }
+  renderHeaderSessions();
+  renderGrid();
+  // If we're viewing a loop, refresh its session section
+  if (currentLoopId) renderLoopSessions(currentLoopId);
+}
+
+function renderHeaderSessions() {
+  const el = document.getElementById('header-sessions');
+  if (!cachedSessions.length) { el.innerHTML = ''; return; }
+  el.innerHTML = cachedSessions.map(s => {
+    const state = s.state || 'idle';
+    const detail = s.detail || '';
+    const loop = s.loop || 'no loop';
+    return `<div class="header-session-dot ${state}" title="${esc(detail)} (${esc(loop)})"></div>`;
+  }).join('');
+
+  // Update working count pill
+  const workingEl = document.getElementById('working-count');
+  const working = cachedSessions.filter(s => s.state === 'working' && s.age_seconds < 300);
+  if (working.length) {
+    workingEl.className = 'pill pill-working';
+    workingEl.innerHTML = `<span class="pw-dot"></span>${working.length} working`;
+    workingEl.style.display = '';
+  } else {
+    workingEl.style.display = 'none';
+  }
+}
+
+function sessionAgeStr(secs) {
+  if (secs < 5) return 'just now';
+  if (secs < 60) return secs + 's ago';
+  if (secs < 3600) return Math.floor(secs / 60) + 'm ago';
+  return Math.floor(secs / 3600) + 'h ago';
+}
+
+function sessionIcon(state) {
+  if (state === 'working') return '⚡';
+  if (state === 'error') return '❌';
+  if (state === 'started') return '🟢';
+  return '💤';
+}
+
+function renderLoopSessions(loopId) {
+  const container = document.getElementById('loop-sessions');
+  if (!container) return;
+  const loopSessions = cachedSessions.filter(s => s.loop === loopId && s.age_seconds < 300);
+  if (!loopSessions.length) {
+    container.innerHTML = '';
+    return;
+  }
+  const working = loopSessions.filter(s => s.state === 'working').length;
+  const total = loopSessions.length;
+  const label = working === total ? `${total} working` : `${working}/${total} working`;
+  let html = `<div class="session-status">
+    <div class="session-status-title"><span class="live-dot"></span>${label}</div></div>`;
+  container.innerHTML = html;
+}
+
 if (localStorage.getItem('cf-theme') !== 'dark') document.body.classList.add('light');
 updateThemeBtn();
 render();
 setInterval(render, 5000);
+fetchSessions();
+setInterval(fetchSessions, 2000);
 </script>
 </body>
 </html>
